@@ -1,0 +1,48 @@
+# Documentation: http://docs.travis-ci.com/user/languages/julia/
+language: julia
+env:
+ - CONDA_JL_VERSION=2
+os:
+  - linux
+#  - osx
+julia:
+  - 0.7
+  - 1.0
+  - nightly
+matrix:
+  - PYTHON=python  # python 2.7
+  #- PYTHON=python3 # python 3.5
+  #- PYTHON=Conda-python
+matrix:
+  allow_failures:
+    - julia: nightly
+ # branches:
+ #   only:
+ #     - master
+ #     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+notifications:
+  email: false
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.instantiate();
+                                    Pkg.develop(PackageSpec(path=pwd()))'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
+
+#script:
+   #- julia --check-bounds=yes --color=yes --inline=no -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("ClimateTools"); Pkg.test("ClimateTools"; coverage=true);'
+
+# before_install:
+#   #- test "x$TRAVIS_OS_NAME" = xosx -o "x$PYTHON" = xConda-python || (sudo apt-get -qq update && sudo apt-get install -y $PYTHON)
+#   - (sudo apt-get -qq update && sudo apt-get install -y python python-pip && sudo pip install matplotlib pyproj && sudo pip install && sudo pip install git+https://github.com/matplotlib/cmocean && sudo pip install scipy && sudo pip install https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz)
+#   - julia -e 'ENV["PYTHON"]="python"; using Pkg; Pkg.add("PyCall"); Pkg.build("PyCall"); Pkg.add("PyPlot"); Pkg.add("Conda"); using Conda; Conda.update(); Conda.add("matplotlib"); Conda.add("basemap==1.0.7");'
+  #- julia -e 'ENV["PYTHON"]="python3"; using Pkg; Pkg.add("PyCall"); Pkg.build("PyCall"); Pkg.add("PyPlot");'
+
+after_success:
+  # - julia -e 'using Pkg; Pkg.add("Documenter");ENV["DOCUMENTER_DEBUG"]="true"; import ClimateTools; cd(joinpath(dirname(pathof(ClimateTools)), "..")); include(joinpath("docs", "make.jl"))'
+  - julia -e 'using Pkg; import ClimateTools; cd(joinpath(dirname(pathof(ClimateTools)), "..")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; import ClimateTools; cd(joinpath(dirname(pathof(ClimateTools)), ".."));Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder())'
