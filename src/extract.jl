@@ -138,8 +138,9 @@ function load(file::String, vari::String; poly = ([]), start_date::Tuple=(Inf,),
 
     #Extract data based on mask
     data_ext = ClimateTools.extractdata(data_pointer, msk, idxtimebeg, idxtimeend)
-    replace_missing!(data_ext)
-    convert!(data_ext)
+    # replace_missing!(data_ext)
+    data_ext = nomissing(data_ext, NaN)
+    # data_ext = convert(data_ext, Float32)
 
     #new mask (e.g. representing the region of the polygon)
     # idlon, idlat = findn(.!isnan.(msk))
@@ -231,8 +232,9 @@ function load(file::String, vari::String; poly = ([]), start_date::Tuple=(Inf,),
 
       msk = Array{Float64}(ones((size(data_pointer, 1), size(data_pointer, 2))))
       data_ext = ClimateTools.extractdata(data_pointer, msk, idxtimebeg, idxtimeend)
-      replace_missing!(data_ext)
-      convert!(data_ext)
+      # replace_missing!(data_ext)
+      data_ext = nomissing(data_ext, NaN)
+      # data_ext = convert(data_ext, Float32)
 
     if rotatedgrid
 
@@ -246,8 +248,9 @@ function load(file::String, vari::String; poly = ([]), start_date::Tuple=(Inf,),
   end
 
   # Replace missing with NaN
-  replace_missing!(data)
-  convert!(data)
+  # replace_missing!(data)
+  # data = nomissing(data, NaN)
+  # data = convert(data, Float32)
 
   # # # Replace fillvalues with NaN
   # fillval = NetCDF.ncgetatt(file, vari, "_FillValue")
@@ -265,7 +268,7 @@ function load(file::String, vari::String; poly = ([]), start_date::Tuple=(Inf,),
     data .-= 273.15
     dataunits = "°C"
     varattrib["units"] = "Celsius"
-    @warn "Using Celsius can be problematic for arithmetic operations. Best practice is to keep Kelvin and only convert to Celsius at the end with the overloaded ClimateTools.uconvert function."
+    # @warn "Using Celsius can be problematic for arithmetic operations. Best practice is to keep Kelvin and only convert to Celsius at the end with the overloaded ClimateTools.uconvert function."
   end
 
   if data_units == "mm" && vari == "pr" && (dataunits == "kg m-2 s-1" || dataunits == "mm s-1")
@@ -404,7 +407,7 @@ function load2D(file::String, vari::String; poly=[], data_units::String="")
 
         latgrid = NetCDF.ncread(file, latgrid_name)
         longrid = NetCDF.ncread(file, longrid_name)
-        
+
         if ClimateTools.@isdefined varattrib["grid_mapping"]
             map_dim = varattrib["grid_mapping"]
             map_attrib = Dict(ds[map_dim].attrib)
@@ -436,7 +439,7 @@ function load2D(file::String, vari::String; poly=[], data_units::String="")
     # ===================
     # GET DATA
     # data = ds[variable]
-    data_pointer = NetCDF.open(file, vari)
+    data_pointer = ds[vari]#NetCDF.open(file, vari)
     if !isempty(poly)
 
       # Test to see if the polygon crosses the meridian
@@ -456,8 +459,9 @@ function load2D(file::String, vari::String; poly=[], data_units::String="")
 
       #Extract data based on mask
       data_ext = ClimateTools.extractdata2D(data_pointer, msk)
-      replace_missing!(data_ext)
-      convert!(data_ext)
+      # replace_missing!(data_ext)
+      data_ext = nomissing(data_ext, NaN)
+      # data_ext = convert(data_ext, Float32)
 
       begin
         I = Base.findall(!isnan, msk)
@@ -519,7 +523,7 @@ function load2D(file::String, vari::String; poly=[], data_units::String="")
               #     data = applymask(data, msk)
 
           else
-            data_final = data_mask
+            data = data_mask
           end
 
       else
@@ -537,33 +541,34 @@ function load2D(file::String, vari::String; poly=[], data_units::String="")
 
               lon_raw_flip = shiftvector_180_east_west(lon_raw)
 
-              data_final = permute_west_east(data_mask, longrid)#idxwest, idxeast)
+              data = permute_west_east(data_mask, longrid)#idxwest, idxeast)
               msk = ClimateTools.permute_west_east(msk, longrid)
 
           else
-            data_final = data_mask
+            data = data_mask
           end
       end
 
     elseif isempty(poly) # no polygon clipping
         msk = Array{Float64}(ones((size(data_pointer, 1), size(data_pointer, 2))))
         data_ext = extractdata2D(data_pointer, msk)
-        replace_missing!(data_ext)
-        convert!(data_ext)
+        # replace_missing!(data_ext)
+        data_ext = nomissing(data_ext, NaN)
+        # data_ext = convert(data_ext, Float32)
 
       if rotatedgrid
           # Flip data "west-east"
-          data_final = permute_west_east(data_ext, longrid)
+          data = permute_west_east(data_ext, longrid)
       else
-        data_final = data_ext
+        data = data_ext
       end
 
     end
 
-    # # Replace fillvalues with NaN
-    fillval = NetCDF.ncgetatt(file, vari, "_FillValue")
-    data_final[data_final .== fillval] .= NaN
-    data = data_final
+    # # # Replace fillvalues with NaN
+    # fillval = NetCDF.ncgetatt(file, vari, "_FillValue")
+    # data_final[data_final .== fillval] .= NaN
+    # data = data_final
 
     if rotatedgrid
         longrid = longrid_flip
