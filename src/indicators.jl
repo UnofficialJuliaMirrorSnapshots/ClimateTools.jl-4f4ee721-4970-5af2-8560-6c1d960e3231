@@ -305,7 +305,7 @@ function drought_dc(pr_day::Real, tas_day::Real, dc0::Real, mth::Int)
 
     # Months constant
     fl = [-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6]
-    dc_single = NaN # initialize
+    dc_single = 0.0 # initialize
 
     if tas_day < -2.8
         tas_day = -2.8
@@ -323,7 +323,7 @@ function drought_dc(pr_day::Real, tas_day::Real, dc0::Real, mth::Int)
         if smi == 0.0
             smi = 1.0
         end
-        dr = dc0 - 400.0*log(1.0+((3.937*rw/smi)))
+        dr = dc0 - 400.0*log(1.0+((3.937*rw)/smi))
 
         if dr > 0.0
             dc_single = dr + pe
@@ -334,7 +334,6 @@ function drought_dc(pr_day::Real, tas_day::Real, dc0::Real, mth::Int)
     end
 
     return dc_single
-
 
 end
 
